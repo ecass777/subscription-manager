@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            background: #f8f8f8;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        form input {
+            flex: 1 1 150px;
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        form button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+        form button:hover {
+            background: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #f0f0f0;
+        }
+        button.action {
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.25rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button.remove {
+            background: #dc3545;
+            color: #fff;
+        }
+        button.remove:hover {
+            background: #c82333;
+        }
+        button.renew {
+            background: #28a745;
+            color: #fff;
+        }
+        button.renew:hover {
+            background: #218838;
+        }
+        #totals {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Subscription Manager</h1>
+    <form id="addForm" onsubmit="addSubscription(event)">
+        <input type="text" id="name" placeholder="Subscription Name" required>
+        <input type="number" id="cost" placeholder="Monthly Cost (e.g. 9.99)" step="0.01" required>
+        <input type="date" id="renewalDate" required>
+        <button type="submit">Add Subscription</button>
+    </form>
+    <div style="margin-bottom: 1rem;">
+        <button onclick="autoCancel()" style="padding:0.5rem 1rem; border:none; border-radius:4px; background:#ffc107; color:#212529; cursor:pointer;">
+            Auto Cancel Due Subscriptions
+        </button>
+    </div>
+    <table id="subscriptionsTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Cost ($/mo)</th>
+                <th>Renewal Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Subscriptions will be populated here -->
+        </tbody>
+    </table>
+    <div id="totals">
+        <strong>Total monthly cost of active subscriptions:</strong> <span id="totalCost">$0.00</span><br>
+        <strong>Total monthly savings from cancelled subscriptions:</strong> <span id="totalSavings">$0.00</span>
+    </div>
+
+    <script>
+        // Subscription data structure
+        const subscriptions = [];
+
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function addMonth(date) {
+            const d = new Date(date);
+            d.setMonth(d.getMonth() + 1);
+            // Adjust for month wrapping: if adding a month results in skipping days
+            if (d.getDate() < date.getDate()) {
+                d.setDate(0);
+            }
+            return d;
+        }
+
+        function addSubscription(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('name');
+            const costInput = document.getElementById('cost');
+            const renewalDateInput = document.getElementById('renewalDate');
+            const name = nameInput.value.trim();
+            const cost = parseFloat(costInput.value);
+            const renewalDate = new Date(renewalDateInput.value);
+            if (!name || isNaN(cost) || !renewalDateInput.value) {
+                alert('Please provide valid name, cost and date');
+                return;
+            }
+            // Check for duplicate subscription names
+            const existing = subscriptions.find(sub => sub.name.toLowerCase() === name.toLowerCase());
+            if (existing) {
+                alert('A subscription with this name already exists.');
+                return;
+            }
+            subscriptions.push({
+                name,
+                cost,
+                renewalDate,
+                active: true
+            });
+            nameInput.value = '';
+            costInput.value = '';
+            renewalDateInput.value = '';
+            updateTable();
+            updateTotals();
+        }
+
+        function removeSubscription(index) {
+            subscriptions.splice(index, 1);
+            updateTable();
+            updateTotals();
+        }
+
+        function renewSubscription(index) {
+            const sub = subscriptions[index];
+            if (!sub) return;
+            sub.active = true;
+            // Add one month to the renewal date
+            sub.renewalDate = addMonth(sub.renewalDate);
+            updateTable();
+            updateTotals();
+        }
+
+        function autoCancel() {
+            const today = new Date();
+            subscriptions.forEach(sub => {
+                if (sub.active && sub.renewalDate <= today) {
+                    sub.active = false;
+                }
+            });
+            updateTable();
+            updateTotals();
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('subscriptionsTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            subscriptions.forEach((sub, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${sub.name}</td>
+                    <td>${sub.cost.toFixed(2)}</td>
+                    <td>${formatDate(sub.renewalDate)}</td>
+                    <td>${sub.active ? 'Active' : 'Cancelled'}</td>
+                    <td>
+                        <button class="action remove" onclick="removeSubscription(${index})">Remove</button>
+                        ${!sub.active ? `<button class="action renew" onclick="renewSubscription(${index})">Renew</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateTotals() {
+            let totalCost = 0;
+            let totalSavings = 0;
+            subscriptions.forEach(sub => {
+                if (sub.active) {
+                    totalCost += sub.cost;
+                } else {
+                    totalSavings += sub.cost;
+                }
+            });
+            document.getElementById('totalCost').textContent = `$${totalCost.toFixed(2)}`;
+            document.getElementById('totalSavings').textContent = `$${totalSavings.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
