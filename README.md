@@ -26,14 +26,19 @@ added separately using appropriate APIs or automation techniques.
 .
 ├── README.md
 ├── subscription_manager
-│   ├── __init__.py
-│   └── subscription.py
+│    ├── __init__.py
+│    ├── cli.py
+│    └── subscription.py
 └── tests
-    └── test_subscription_manager.py
+       └── test_subscription_manager.py
 ```
 
 * `subscription_manager/subscription.py` contains the `Subscription` and
   `SubscriptionManager` classes.
+* `subscription_manager/cli.py` defines a simple command‑line interface
+  (CLI) front end. The CLI presents a menu so you can add, remove,
+  list, auto‑cancel and renew subscriptions, and view cost summaries without
+  writing any Python code yourself.
 * `tests/test_subscription_manager.py` holds unit tests that verify the core
   behaviours of the library.
 
@@ -54,6 +59,21 @@ correctly for the scenarios covered. You can also run the tests using
 ```bash
 pytest -q
 ```
+
+## Running the CLI
+
+This repository includes a simple interactive command‑line interface. To
+start the CLI, run the following command from the project root:
+
+```bash
+python -m subscription_manager.cli
+```
+
+A numbered menu of actions will appear. From this menu you can add new
+subscriptions, remove existing ones, list all or only active subscriptions,
+automatically cancel any subscriptions whose renewal dates have arrived,
+renew a subscription, and show total active cost and savings. Date inputs
+should be in ISO format (`YYYY‑MM‑DD`).
 
 ## Extending the Prototype
 
